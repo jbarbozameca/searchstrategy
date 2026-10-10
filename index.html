@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="logo.png">
+<title>Constructor de Estrategias Tau</title>
+<meta name="description" content="Genera tu estrategia de búsqueda sistemática según el tipo de pregunta (PICO, PECO, PEO, PCC, SPIDER…) con MeSH 2026 y DeCS. Tau Clinical Research.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: two-pane workbench — question & blocks on the left, live syntax per database pinned on the right; forest-plot ink motif from the Tau logo */
+:root{
+  --bg:#ffffff; --panel:#f5f7fa; --ink:#12161c; --muted:#5a6573; --line:#d9dfe7;
+  --accent:#1d3a63; --accent-soft:#e6edf6; --mark:#12161c;
+  --ok:#1f7a4d; --ok-soft:#e3f3ea; --warn:#9a5b00; --warn-soft:#fbf0dc; --bad:#a3262a; --bad-soft:#f8e3e3;
+  --code-bg:#0f1720; --code-fg:#e8edf3; --code-op:#8fb4ff; --code-fld:#f0c674; --code-ln:#7d8a99;
+  --t-mesh:#1d3a63; --t-mesh-bg:#e6edf6; --t-free:#3b4552; --t-free-bg:#eef0f3; --t-es:#7a3e00; --t-es-bg:#fbeedd; --t-eric:#4b2a7a; --t-eric-bg:#efe7fa;
+  --f-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --f-body:"Source Sans 3","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:6px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1116; --panel:#161b22; --ink:#e7ecf2; --muted:#9aa6b4; --line:#2a323d;
+  --accent:#8fb4ff; --accent-soft:#1b2a40; --mark:#e7ecf2;
+  --ok:#5fcf98; --ok-soft:#14301f; --warn:#f0b65a; --warn-soft:#33260f; --bad:#ff8a8f; --bad-soft:#3a1517;
+  --code-bg:#090c10; --code-fg:#e8edf3; --code-op:#8fb4ff; --code-fld:#f0c674; --code-ln:#6c7887;
+  --t-mesh:#a9c6ff; --t-mesh-bg:#1b2a40; --t-free:#cfd6df; --t-free-bg:#232a33; --t-es:#ffc98a; --t-es-bg:#33240f; --t-eric:#d3b8ff; --t-eric-bg:#2a1e3d;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1116; --panel:#161b22; --ink:#e7ecf2; --muted:#9aa6b4; --line:#2a323d;
+  --accent:#8fb4ff; --accent-soft:#1b2a40; --mark:#e7ecf2;
+  --ok:#5fcf98; --ok-soft:#14301f; --warn:#f0b65a; --warn-soft:#33260f; --bad:#ff8a8f; --bad-soft:#3a1517;
+  --code-bg:#090c10; --code-fg:#e8edf3; --code-op:#8fb4ff; --code-fld:#f0c674; --code-ln:#6c7887;
+  --t-mesh:#a9c6ff; --t-mesh-bg:#1b2a40; --t-free:#cfd6df; --t-free-bg:#232a33; --t-es:#ffc98a; --t-es-bg:#33240f; --t-eric:#d3b8ff; --t-eric-bg:#2a1e3d;
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;margin:0}
+a{color:var(--accent)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1380px;margin:0 auto;padding-inline:20px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0}
+.eyebrow{font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+
+/* header */
+header.top{border-bottom:2px solid var(--mark)}
+.top .wrap{display:flex;gap:20px;align-items:center;padding-block:18px;flex-wrap:wrap}
+.logo{width:92px;height:auto;background:#fff;border-radius:4px;padding:4px;flex:none}
+.brand{flex:1 1 320px;min-width:0}
+.brand h1{font-size:clamp(24px,3vw,34px);font-weight:800;letter-spacing:-.01em;line-height:1.1}
+.brand p{margin:4px 0 0;color:var(--muted);max-width:70ch}
+.cta{display:inline-flex;align-items:center;gap:8px;background:var(--mark);color:var(--bg);text-decoration:none;font-family:var(--f-display);font-weight:700;padding:10px 16px;border-radius:var(--r);white-space:nowrap}
+.cta:hover{opacity:.88}
+.status{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+
+/* grid */
+main.wrap{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:28px;padding-block:24px 40px}
+@media (max-width:980px){main.wrap{grid-template-columns:minmax(0,1fr)}}
+.col{min-width:0;display:flex;flex-direction:column;gap:22px}
+.out{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);align-self:start;max-height:calc(100vh - 24px);overflow:auto}
+@media (max-width:980px){.out{position:static;max-height:none}}
+
+.step-h{display:flex;align-items:baseline;gap:12px;margin-bottom:10px}
+.step-h .n{font-family:var(--f-mono);font-weight:600;font-size:13px;color:var(--bg);background:var(--mark);border-radius:3px;padding:1px 7px}
+.step-h h2{font-size:20px;font-weight:700}
+.hint{color:var(--muted);font-size:14px;margin:0}
+
+/* frameworks */
+.fw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.fw{border:1px solid var(--line);background:var(--bg);border-radius:var(--r);padding:9px 11px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.fw b{font-family:var(--f-display);font-size:16px}
+.fw span{font-size:12.5px;color:var(--muted);line-height:1.3}
+.fw:hover{border-color:var(--accent)}
+.fw[aria-pressed="true"]{border-color:var(--mark);box-shadow:inset 0 0 0 1px var(--mark);background:var(--panel)}
+.fw-info{margin-top:10px;padding:12px 14px;background:var(--panel);border-radius:var(--r);font-size:14.5px}
+.fw-info .letters{font-family:var(--f-mono);font-size:13px;color:var(--accent);font-weight:600}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.switch{display:inline-flex;gap:8px;align-items:center;cursor:pointer;font-size:14.5px;user-select:none}
+.switch input{width:18px;height:18px;accent-color:var(--accent)}
+textarea#q{width:100%;min-height:60px;border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;background:var(--bg);resize:vertical}
+
+/* blocks */
+.block{border:1px solid var(--line);border-radius:var(--r);background:var(--bg)}
+.block.off{opacity:.62}
+.block-h{display:flex;gap:12px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.letter{font-family:var(--f-display);font-weight:800;font-size:22px;min-width:38px;height:38px;display:grid;place-items:center;border:2px solid var(--mark);border-radius:4px;padding-inline:4px}
+.block-h .tt{flex:1 1 200px;min-width:0}
+.block-h .tt b{font-family:var(--f-display);font-size:16px;display:block}
+.block-h .tt small{color:var(--muted);font-size:13px}
+.block-b{padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.search{position:relative}
+.search input,.free input{width:100%;border:1px solid var(--line);border-radius:var(--r);padding:9px 12px;background:var(--bg)}
+.free{display:flex;gap:6px;flex-wrap:wrap}
+.free input{flex:1 1 200px;width:auto;min-width:0}
+.free select{border:1px solid var(--line);border-radius:var(--r);padding:8px;background:var(--bg)}
+.btn{border:1px solid var(--line);background:var(--bg);border-radius:var(--r);padding:8px 12px;cursor:pointer;font-size:14px;font-weight:600}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.btn.pri:hover{opacity:.9;color:var(--bg)}
+.btn.sm{padding:4px 9px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+.results{border:1px solid var(--line);border-radius:var(--r);max-height:300px;overflow:auto;background:var(--bg)}
+.res{display:flex;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);cursor:pointer;align-items:flex-start;width:100%;text-align:left;background:none;border-inline:0;border-top:0}
+.res:last-child{border-bottom:0}
+.res:hover,.res:focus-visible{background:var(--panel)}
+.res .nm{font-weight:700}
+.res .via{font-size:13px;color:var(--muted)}
+.res .cat{font-family:var(--f-mono);font-size:11px;color:var(--muted);white-space:nowrap;margin-left:auto}
+.src{font-family:var(--f-mono);font-size:10.5px;font-weight:600;padding:1px 6px;border-radius:3px;white-space:nowrap;letter-spacing:.04em}
+.src.mesh{background:var(--t-mesh-bg);color:var(--t-mesh)}
+.src.eric{background:var(--t-eric-bg);color:var(--t-eric)}
+.src.live{background:var(--ok-soft);color:var(--ok)}
+.res-foot{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:8px 12px;background:var(--panel);font-size:13px;color:var(--muted);flex-wrap:wrap}
+
+.detail{border:1px solid var(--accent);border-radius:var(--r);padding:12px 14px;background:var(--panel);display:flex;flex-direction:column;gap:10px}
+.detail h3{font-size:18px}
+.detail .meta{font-family:var(--f-mono);font-size:12px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap}
+.detail .lbl{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:4px}
+.checks{display:flex;flex-wrap:wrap;gap:6px}
+.ck{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--line);background:var(--bg);border-radius:20px;padding:3px 10px 3px 7px;font-size:13.5px;cursor:pointer}
+.ck input{accent-color:var(--accent);margin:0}
+.ck em{font-style:normal;font-family:var(--f-mono);font-size:10px;color:var(--muted)}
+.scope{font-size:14px;color:var(--ink);background:var(--bg);border-radius:var(--r);padding:8px 10px;border:1px dashed var(--line)}
+.links{display:flex;gap:12px;flex-wrap:wrap;font-size:13.5px}
+.kids{display:flex;flex-wrap:wrap;gap:6px}
+.kid{border:1px dashed var(--line);background:var(--bg);border-radius:20px;padding:2px 10px;font-size:13px;cursor:pointer}
+.kid:hover{border-color:var(--accent);color:var(--accent)}
+
+.terms{display:flex;flex-wrap:wrap;gap:6px;min-height:30px}
+.term{display:inline-flex;align-items:center;gap:6px;border-radius:4px;padding:3px 4px 3px 8px;font-size:14px;line-height:1.3;max-width:100%}
+.term span.t{overflow-wrap:anywhere}
+.term.mesh{background:var(--t-mesh-bg);color:var(--t-mesh);font-weight:600}
+.term.free{background:var(--t-free-bg);color:var(--t-free)}
+.term.es{background:var(--t-es-bg);color:var(--t-es)}
+.term.scr{background:var(--t-mesh-bg);color:var(--t-mesh);font-weight:600;box-shadow:inset 0 0 0 1px var(--t-mesh)}
+.src.scr{background:var(--t-mesh-bg);color:var(--t-mesh);box-shadow:inset 0 0 0 1px var(--t-mesh)}
+.term.eric{background:var(--t-eric-bg);color:var(--t-eric);font-weight:600}
+.term i{font-style:normal;font-family:var(--f-mono);font-size:10px;opacity:.75}
+.term button{border:0;background:none;cursor:pointer;color:inherit;font-size:15px;line-height:1;padding:0 4px;opacity:.6}
+.term button:hover{opacity:1}
+.empty{color:var(--muted);font-size:14px;font-style:italic}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.legend .term{font-size:12px;padding:1px 7px}
+
+/* output */
+.outbox{border:2px solid var(--mark);border-radius:var(--r);background:var(--bg)}
+.tabs{display:flex;overflow-x:auto;border-bottom:1px solid var(--line);scrollbar-width:thin}
+.tab{border:0;background:none;padding:10px 13px;cursor:pointer;font-family:var(--f-display);font-weight:700;font-size:14px;color:var(--muted);white-space:nowrap;border-bottom:3px solid transparent}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--mark)}
+.pane{padding:14px;display:flex;flex-direction:column;gap:12px}
+.pane-h{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.pane-h h3{font-size:17px}
+pre.code{background:var(--code-bg);color:var(--code-fg);font-family:var(--f-mono);font-size:12.8px;line-height:1.55;padding:12px 14px;border-radius:var(--r);overflow-x:auto;white-space:pre-wrap;word-break:break-word;margin:0;max-height:430px;overflow-y:auto}
+pre.code .op{color:var(--code-op);font-weight:600}
+pre.code .fld{color:var(--code-fld)}
+pre.code .ln{color:var(--code-ln)}
+.note{font-size:13.5px;color:var(--muted);border-left:3px solid var(--line);padding-left:10px;margin:0}
+.counts{display:grid;grid-template-columns:auto 1fr auto;gap:4px 12px;font-size:14px;align-items:center}
+.counts .num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right;font-weight:600}
+.bar{height:8px;background:var(--panel);border-radius:4px;position:relative;overflow:hidden}
+.bar i{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:4px}
+.seeds textarea{width:100%;min-height:54px;border:1px solid var(--line);border-radius:var(--r);padding:8px 10px;background:var(--bg);font-family:var(--f-mono);font-size:13px}
+.msg{font-size:13.5px;padding:8px 10px;border-radius:var(--r)}
+.msg.ok{background:var(--ok-soft);color:var(--ok)}
+.msg.warn{background:var(--warn-soft);color:var(--warn)}
+.msg.bad{background:var(--bad-soft);color:var(--bad)}
+
+.audit{display:flex;flex-direction:column;gap:6px}
+.audit li{list-style:none;display:flex;gap:8px;align-items:flex-start;font-size:14px}
+.audit ul{margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.pill{font-family:var(--f-mono);font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:10px;white-space:nowrap;flex:none;margin-top:2px}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+details.card{border:1px solid var(--line);border-radius:var(--r);padding:10px 14px;background:var(--panel)}
+details.card summary{cursor:pointer;font-family:var(--f-display);font-weight:700}
+details.card[open] summary{margin-bottom:8px}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opts input[type=text]{border:1px solid var(--line);border-radius:var(--r);padding:7px 10px;background:var(--bg);width:100%;font-family:var(--f-mono);font-size:13px}
+.rules{margin:0;padding-left:18px;font-size:14px;display:flex;flex-direction:column;gap:4px}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 18px);background:var(--mark);color:var(--bg);padding:9px 16px;border-radius:var(--r);font-size:14px;z-index:20;max-width:calc(100% - 32px)}
+
+footer{border-top:2px solid var(--mark);margin-top:10px}
+footer .wrap{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1fr);gap:24px;padding-block:24px 32px;align-items:start}
+@media (max-width:820px){footer .wrap{grid-template-columns:minmax(0,1fr)}}
+footer .logo{width:96px}
+footer h3{font-size:16px;margin-bottom:4px}
+footer p{margin:0 0 4px;font-size:14px;color:var(--muted)}
+footer .who b{color:var(--ink)}
+footer .cta{white-space:normal}
+.loading{display:flex;gap:10px;align-items:center;font-size:14px;color:var(--muted)}
+.spin{width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp .8s linear infinite;flex:none}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+</style>
+</head>
+<body>
+
+
+<header class="top">
+  <div class="wrap">
+    <img class="logo" src="logo.png" alt="Logo Tau Clinical Research">
+    <div class="brand">
+      <div class="eyebrow">Tau Clinical Research · Búsqueda sistemática</div>
+      <h1>Constructor de Estrategias Tau</h1>
+      <p>Elige el marco de tu pregunta, busca descriptores MeSH y equivalentes DeCS para cada componente, y obtén la sintaxis lista para PubMed, Scopus, Web of Science, Embase, Cochrane, BVS/LILACS y ERIC.</p>
+      <div class="status" id="dbStatus"><span class="spin" style="display:inline-block;vertical-align:-2px"></span> Cargando MeSH 2026…</div>
+    </div>
+    <a class="cta" href="https://investigaciontau.com/cursos-online/" target="_blank" rel="noopener">Cursos online Tau →</a>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="col" aria-label="Construcción">
+    <div>
+      <div class="step-h"><span class="n">1</span><h2>Marco de la pregunta</h2></div>
+      <div class="fw-grid" id="fwGrid" role="group" aria-label="Marco de la pregunta"></div>
+      <div class="fw-info" id="fwInfo"></div>
+    </div>
+
+    <div>
+      <div class="step-h"><span class="n">2</span><h2>Pregunta y tipo de revisión</h2></div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <textarea id="q" placeholder="Escribe tu pregunta de investigación"></textarea>
+        <div class="row">
+          <label class="switch"><input type="checkbox" id="umbrella"> Umbrella review (añade el bloque de diseño: revisiones sistemáticas / metaanálisis)</label>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="step-h"><span class="n">3</span><h2>Bloques de búsqueda</h2></div>
+      <p class="hint" style="margin-bottom:10px">Un bloque por variable de la pregunta. Dentro de cada bloque los términos se unen con OR; los bloques activos se cruzan con AND. Busca en español o inglés: el buscador recorre el MeSH 2026 completo (31 110 descriptores con sus términos de entrada), sus 324 046 conceptos suplementarios (fármacos, sustancias, enfermedades raras, organismos) y el ERIC Thesaurus 2025 completo (4578 descriptores con sus sinónimos).</p>
+      <div class="legend" style="margin-bottom:10px">
+        <span class="term mesh">MeSH</span> vocabulario controlado
+        <span class="term free">libre EN</span> término libre en inglés
+        <span class="term es">ES / DeCS</span> término en español (BVS/LILACS)
+        <span class="term scr">SCR</span> concepto suplementario MeSH (fármacos, sustancias, enfermedades raras)
+        <span class="term eric">ERIC</span> descriptor ERIC
+      </div>
+      <div id="blocks" style="display:flex;flex-direction:column;gap:14px"></div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="btnExample" type="button">Cargar ejemplo (iSGLT2 en insuficiencia cardíaca)</button>
+        <button class="btn" id="btnClear" type="button">Nueva estrategia en blanco</button>
+        <span id="clearConfirm" hidden class="row" style="gap:6px"><span class="hint">¿Borrar todos los términos?</span><button class="btn sm" id="clearYes" type="button">Sí, borrar</button><button class="btn sm" id="clearNo" type="button">Cancelar</button></span>
+      </div>
+    </div>
+
+    <details class="card" id="optsCard">
+      <summary>Opciones y reglas de construcción</summary>
+      <div class="opts">
+        <label class="switch"><input type="checkbox" id="optEsIntl"> Incluir términos en español también en PubMed, Scopus, WoS y Embase</label>
+        <label class="switch"><input type="checkbox" id="optEmtree"> Embase: usar los descriptores MeSH como candidatos Emtree con /exp (verificar cada uno en Emtree)</label>
+        <label class="switch"><input type="checkbox" id="optScr"> Cargar automáticamente los 324 046 conceptos suplementarios MeSH (unos 9 MB; desactívalo en conexiones lentas)</label>
+        <label class="switch"><input type="checkbox" id="optInverted"> Mostrar formas invertidas de los términos de entrada (p. ej. «Heart Failure, Congestive»)</label>
+        <div>
+          <label for="optDecsKey" class="hint">Clave API de DeCS/BIREME (opcional, gratuita). Activa la consulta del DeCS oficial dentro de la ficha de cada descriptor. Se guarda solo en tu navegador. BIREME la otorga gratis tras firmar su <a href="https://forms.office.com/r/Vz3gefsXF6" target="_blank" rel="noopener">licencia de uso del DeCS</a>.</label>
+          <input type="text" id="optDecsKey" autocomplete="off" placeholder="apikey de api.bvsalud.org">
+        </div>
+        <div class="lbl" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-top:6px">Reglas que aplica el constructor</div>
+        <ul class="rules">
+          <li>PubMed sin corchetes ni etiquetas de campo: frases exactas entre comillas y el mapeo automático hace el resto. Los límites (tipo de artículo, fecha, idioma) se aplican desde los filtros de la interfaz.</li>
+          <li>Tantos bloques como variables de la pregunta. El comparador y el diseño quedan fuera salvo que los actives; en umbrella review se añade el bloque de diseño.</li>
+          <li>Sin truncadores ni comodines: cualquier *, ?, $ o # se elimina al añadir un término.</li>
+          <li>Cada concepto se escribe en su forma compuesta y exacta («adolescent depression»); no se descompone ni se recombina con AND dentro del bloque.</li>
+          <li>Doble columna: vocabulario controlado + términos libres unidos por OR. Sin NOT.</li>
+        </ul>
+      </div>
+    </details>
+  </section>
+
+  <section class="col out" aria-label="Estrategias generadas">
+    <div class="outbox">
+      <div class="tabs" role="tablist" id="tabs"></div>
+      <div id="pane" class="pane"></div>
+    </div>
+    <div class="outbox" style="border-width:1px">
+      <div class="pane">
+        <div class="pane-h"><h3>Chequeo de la estrategia</h3></div>
+        <div class="audit" id="audit"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <img class="logo" src="logo.png" alt="Tau Clinical Research">
+    <div class="who">
+      <h3>Créditos</h3>
+      <p><b>Dr. Joshuan J. Barboza</b>, MD, PhD · Doctor en Investigación Clínica y Traslacional</p>
+      <p>Investigador Distinguido RENACYT · Docente investigador, Vicerrectorado de Investigación, Universidad Señor de Sipán</p>
+      <p>Miembro Cochrane (USIL afiliado a INS) · ORCID <a href="https://orcid.org/0000-0002-2896-1407" target="_blank" rel="noopener">0000-0002-2896-1407</a></p>
+      <p style="margin-top:10px"><a class="cta" href="https://investigaciontau.com/cursos-online/" target="_blank" rel="noopener">Aprende revisiones sistemáticas en investigaciontau.com/cursos-online →</a></p>
+    </div>
+    <div>
+      <h3>Fuentes de vocabulario</h3>
+      <p>MeSH 2026, U.S. National Library of Medicine (dominio público): 31 110 descriptores con términos de entrada y árbol jerárquico, y 324 046 conceptos suplementarios con sus sinónimos.</p>
+      <p>ERIC Thesaurus 2025, Institute of Education Sciences (dominio público): 4578 descriptores con notas de alcance, sinónimos (Use For) y relaciones BT/NT/RT.</p>
+      <p>Equivalentes en español de Wikidata (CC0) enlazados por identificador MeSH. DeCS oficial (BIREME/OPS/OMS) por enlace directo o por su API con clave de licencia.</p>
+      <p>Consultas en vivo: NCBI E-utilities (conteos PubMed, conceptos suplementarios, notas de alcance).</p>
+      <p>Valida siempre cada descriptor en su tesauro y la estrategia final con estudios semilla y revisión PRESS.</p>
+    </div>
+  </div>
+</footer>
+<div class="toast" id="toast" hidden></div>
+
+<script src="mesh-data.js" defer></script>
+<script src="eric-data.js" defer></script>
+<script>
+(function(){
+"use strict";
+/* ---------- constants ---------- */
+const FW = {
+  PICO:{name:"PICO",use:"Eficacia y efectividad de intervenciones",comp:[
+    {k:"P",l:"Población",h:"Pacientes o condición de interés",on:true},
+    {k:"I",l:"Intervención",h:"Tratamiento, programa o exposición evaluada",on:true},
+    {k:"C",l:"Comparador",h:"Rara vez entra en el booleano: actívalo solo si es indispensable",on:false},
+    {k:"O",l:"Outcome",h:"Desenlace; omítelo si es muy heterogéneo para no perder estudios",on:true}]},
+  PICOS:{name:"PICOS",use:"PICO restringido a un diseño (ECA, cohortes)",comp:[
+    {k:"P",l:"Población",h:"Pacientes o condición de interés",on:true},
+    {k:"I",l:"Intervención",h:"Tratamiento evaluado",on:true},
+    {k:"C",l:"Comparador",h:"Normalmente fuera del booleano",on:false},
+    {k:"O",l:"Outcome",h:"Desenlace",on:true},
+    {k:"S",l:"Diseño (Study design)",h:"Prefiere los filtros de la interfaz; activa este bloque solo si la base no los tiene",on:false}]},
+  PECO:{name:"PECO",use:"Etiología y factores de riesgo",comp:[
+    {k:"P",l:"Población",h:"Personas expuestas y no expuestas",on:true},
+    {k:"E",l:"Exposición",h:"Factor de riesgo o exposición",on:true},
+    {k:"C",l:"Comparador",h:"No expuestos o nivel de referencia",on:false},
+    {k:"O",l:"Outcome",h:"Enfermedad o desenlace",on:true}]},
+  PEO:{name:"PEO",use:"Exposición y desenlace (observacional, cualitativa)",comp:[
+    {k:"P",l:"Población",h:"Grupo de estudio",on:true},
+    {k:"E",l:"Exposición",h:"Exposición o experiencia",on:true},
+    {k:"O",l:"Outcome",h:"Desenlace o experiencia resultante",on:true}]},
+  PIRD:{name:"PIRD",use:"Exactitud diagnóstica (DTA)",comp:[
+    {k:"P",l:"Población / condición diana",h:"Pacientes con sospecha de la condición",on:true},
+    {k:"I",l:"Prueba índice",h:"Prueba diagnóstica evaluada",on:true},
+    {k:"R",l:"Prueba de referencia",h:"Estándar de oro; normalmente fuera del booleano",on:false},
+    {k:"D",l:"Diagnóstico",h:"Medidas de exactitud: evita este bloque, reduce la sensibilidad",on:false}]},
+  PFO:{name:"PFO",use:"Pronóstico y factores pronósticos",comp:[
+    {k:"P",l:"Población",h:"Pacientes con la condición",on:true},
+    {k:"F",l:"Factor pronóstico",h:"Marcador o característica evaluada",on:true},
+    {k:"O",l:"Outcome",h:"Evento pronóstico (mortalidad, recurrencia…)",on:true}]},
+  CoCoPop:{name:"CoCoPop",use:"Prevalencia e incidencia (JBI)",comp:[
+    {k:"Co",l:"Condición",h:"Enfermedad o problema",on:true},
+    {k:"Cx",l:"Contexto",h:"Lugar, país, ámbito",on:true},
+    {k:"Pop",l:"Población",h:"Grupo poblacional",on:true}]},
+  PCC:{name:"PCC",use:"Revisiones de alcance (scoping, JBI)",comp:[
+    {k:"P",l:"Población",h:"Participantes",on:true},
+    {k:"C1",l:"Concepto",h:"Fenómeno central de la revisión",on:true},
+    {k:"C2",l:"Contexto",h:"Entorno, ámbito o país",on:true}]},
+  PICo:{name:"PICo",use:"Cualitativa (JBI)",comp:[
+    {k:"P",l:"Población",h:"Participantes",on:true},
+    {k:"I",l:"Fenómeno de interés",h:"Experiencia, percepción o proceso",on:true},
+    {k:"Co",l:"Contexto",h:"Entorno o situación",on:true}]},
+  SPIDER:{name:"SPIDER",use:"Cualitativa y métodos mixtos",comp:[
+    {k:"S",l:"Sample",h:"Muestra",on:true},
+    {k:"PI",l:"Phenomenon of Interest",h:"Fenómeno de interés",on:true},
+    {k:"D",l:"Design",h:"Diseño (entrevistas, grupos focales…)",on:false},
+    {k:"E",l:"Evaluation",h:"Evaluación (experiencias, actitudes…)",on:true},
+    {k:"R",l:"Research type",h:"Tipo de investigación (cualitativa, mixta)",on:false}]},
+  SPICE:{name:"SPICE",use:"Servicios, políticas y educación",comp:[
+    {k:"S",l:"Setting",h:"Entorno",on:true},
+    {k:"P",l:"Perspective",h:"Usuarios o actores",on:true},
+    {k:"I",l:"Intervention",h:"Intervención o programa",on:true},
+    {k:"C",l:"Comparison",h:"Alternativa",on:false},
+    {k:"E",l:"Evaluation",h:"Resultado evaluado",on:false}]}
+};
+const SR_BLOCK = {k:"SR",l:"Diseño (umbrella review)",h:"Revisiones sistemáticas, metaanálisis y overviews",on:true};
+const SR_TERMS = [["Systematic Reviews as Topic","mesh","D000078202"],["Meta-Analysis as Topic","mesh","D015201"],["systematic review","free"],["systematic reviews","free"],["meta-analysis","free"],["meta-analyses","free"],["meta analysis","free"],["umbrella review","free"],["overview of reviews","free"],["revisión sistemática","es"],["metaanálisis","es"]];
+const CAT = {A:"Anatomía",B:"Organismos",C:"Enfermedades",D:"Compuestos químicos y drogas",E:"Técnicas y equipos",F:"Psiquiatría y psicología",G:"Fenómenos y procesos",H:"Disciplinas y ocupaciones",I:"Antropología, educación, sociología",J:"Tecnología, industria y agricultura",K:"Humanidades",L:"Ciencia de la información",M:"Grupos de personas",N:"Atención de salud",V:"Tipos de publicación",Z:"Geografía"};
+const EXAMPLE = {fw:"PICO",q:"En adultos con insuficiencia cardíaca, ¿los inhibidores SGLT2 frente a placebo o tratamiento estándar reducen la mortalidad y la hospitalización?",umbrella:false,blocks:{
+  P:{on:true,terms:[["Heart Failure","mesh","D006333"],["heart failure","free"],["cardiac failure","free"],["congestive heart failure","free"],["CHF","free"],["HFrEF","free"],["HFpEF","free"],["heart failure with reduced ejection fraction","free"],["heart failure with preserved ejection fraction","free"],["insuficiencia cardíaca","es"]]},
+  I:{on:true,terms:[["Sodium-Glucose Transporter 2 Inhibitors","mesh","D000077203"],["SGLT2 inhibitor","free"],["SGLT2 inhibitors","free"],["SGLT-2 inhibitor","free"],["sodium glucose cotransporter 2 inhibitor","free"],["gliflozin","free"],["gliflozins","free"],["empagliflozin","free"],["dapagliflozin","free"],["canagliflozin","free"],["ertugliflozin","free"],["sotagliflozin","free"],["inhibidores del cotransportador de sodio-glucosa 2","es"]]},
+  C:{on:false,terms:[["placebo","free"]]},
+  O:{on:true,terms:[["Mortality","mesh","D009026"],["Hospitalization","mesh","D006760"],["mortality","free"],["death","free"],["cardiovascular death","free"],["survival","free"],["hospitalization","free"],["hospitalisation","free"],["hospital admission","free"],["rehospitalization","free"],["mortalidad","es"],["hospitalización","es"]]}
+}};
+const DBS = [
+  {id:"pubmed",name:"PubMed"},{id:"scopus",name:"Scopus"},{id:"wos",name:"Web of Science"},{id:"embase",name:"Embase"},
+  {id:"cochrane",name:"Cochrane"},{id:"bvs",name:"BVS / LILACS"},{id:"eric",name:"ERIC"},{id:"report",name:"Reporte PRISMA-S"}];
+const EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/";
+const OFFLINE_MSG = "No se pudo conectar con el servicio externo. Revisa tu conexión; si estás en la vista previa de Claude, las consultas externas están bloqueadas y funcionan en la versión publicada en GitHub Pages.";
+
+/* ---------- utils ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const norm = s => String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[-,/()]/g," ").replace(/\s+/g," ").trim();
+const pad = n => "D"+String(n).padStart(6,"0");
+const ls = {get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+let toastT;
+function toast(m){const t=$("#toast");t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,3200)}
+function cleanTerm(s){
+  let t=String(s).replace(/[“”"]/g,"").replace(/[\[\]{}]/g,"");
+  const had=/[*?$#]/.test(t);
+  t=t.replace(/[*?$#]/g,"").replace(/\s+/g," ").trim();
+  if(had) toast("Se eliminó el truncador o comodín: los términos van completos y exactos.");
+  return t;
+}
+async function getJSON(url,opts){const r=await fetch(url,opts);if(!r.ok)throw new Error("HTTP "+r.status);return r.json()}
+
+/* ---------- state ---------- */
+let state = loadState() || fromExample();
+function blank(){return {fw:"PICO",q:"",umbrella:false,data:{},opts:{esIntl:false,emtree:false,inverted:false,scrAuto:true},tab:"pubmed",seeds:"",decsKey:""}}
+function fromExample(){
+  const s=blank(); s.fw=EXAMPLE.fw; s.q=EXAMPLE.q; s.umbrella=EXAMPLE.umbrella;
+  const d={};
+  for(const k in EXAMPLE.blocks){const b=EXAMPLE.blocks[k];d[k]={on:b.on,terms:b.terms.map(t=>({t:t[0],k:t[1],ui:t[2]||""}))}}
+  s.data.PICO=d; s.seeds="31535829 32865377 34449189 36027570"; return s;
+}
+function loadState(){try{const v=ls.get("tauSearchBuilder.v1");if(!v)return null;const s=JSON.parse(v);return Object.assign(blank(),s)}catch(e){return null}}
+function save(){ls.set("tauSearchBuilder.v1",JSON.stringify(state))}
+function comps(){const c=FW[state.fw].comp.slice();if(state.umbrella)c.push(SR_BLOCK);return c}
+function blk(k){
+  const d=state.data[state.fw]||(state.data[state.fw]={});
+  if(!d[k]){const c=comps().find(x=>x.k===k);d[k]={on:c?c.on:true,terms:[]};
+    if(k==="SR")d[k].terms=SR_TERMS.map(t=>({t:t[0],k:t[1],ui:t[2]||""}));}
+  return d[k];
+}
+function activeBlocks(){return comps().map(c=>({c,b:blk(c.k)})).filter(x=>x.b.on&&x.b.terms.length)}
+
+/* ---------- vocabulary index (MeSH + ERIC + SCR) ---------- */
+// ref encoding: MeSH descriptor i -> i ; ERIC descriptor j -> 1e6+j ; MeSH supplementary concept s -> 2e6+s
+// kind: 0 MeSH heading, 1 MeSH entry term, 2 español, 3 ERIC descriptor, 4 ERIC Use For, 5 SCR name, 6 SCR synonym
+const RE=1e6, RS=2e6;
+let M=null, E=null, S=null, IDX=null, IDXS=null, BYUI=null, KIDS=null, TREE=null, EBYNAME=null, SCRSTATE="idle";
+const SCR_CLASS={1:"Sustancia química o fármaco",2:"Protocolo",3:"Enfermedad rara",4:"Organismo",5:"Grupo poblacional",6:"Anatomía"};
+const stripE = e => e.replace(/^[\^$]/,"");
+function initData(){
+  if(!window.MESH_DATA){$("#dbStatus").innerHTML="No se encontró <code>mesh-data.js</code>: el buscador de descriptores no está disponible. La sintaxis por base sigue funcionando.";return}
+  M=window.MESH_DATA; E=window.ERIC_DATA||[]; BYUI=new Map(); TREE=new Map(); EBYNAME=new Map();
+  const texts=[],ref=[],kind=[];
+  M.forEach((r,i)=>{
+    BYUI.set(r[0],i);
+    texts.push(norm(r[1]));ref.push(i);kind.push(0);
+    if(r[2])for(const t of r[2].split(";"))TREE.set(t,i);
+    if(r[3])for(const e of r[3].split("|")){texts.push(norm(stripE(e)));ref.push(i);kind.push(1)}
+    if(r[4])for(const e of r[4].split("|")){texts.push(norm(e));ref.push(i);kind.push(2)}
+  });
+  E.forEach((r,j)=>{EBYNAME.set(r[0],j);texts.push(norm(r[0]));ref.push(RE+j);kind.push(3);
+    if(r[2])for(const u of r[2].split("|")){texts.push(norm(u));ref.push(RE+j);kind.push(4)}});
+  IDX={texts,ref,kind};
+  updateStatus();
+  if(state.opts.scrAuto!==false)setTimeout(loadSCR,800);
+}
+function updateStatus(){
+  const parts=["MeSH 2026: "+M.length.toLocaleString("es")+" descriptores"];
+  if(E.length)parts.push("ERIC 2025: "+E.length.toLocaleString("es")+" descriptores");
+  if(S)parts.push("conceptos suplementarios MeSH: "+S.length.toLocaleString("es"));
+  else if(SCRSTATE==="loading")parts.push("cargando conceptos suplementarios MeSH…");
+  else if(SCRSTATE==="error")parts.push("conceptos suplementarios no disponibles");
+  const n=(IDX?IDX.texts.length:0)+(IDXS?IDXS.texts.length:0);
+  $("#dbStatus").textContent=parts.join(" · ")+" · "+n.toLocaleString("es")+" términos indexados";
+}
+function loadSCR(){
+  if(SCRSTATE!=="idle")return; SCRSTATE="loading"; updateStatus();
+  const files=["scr-data-1.js","scr-data-2.js","scr-data-3.js","scr-data-4.js"]; let i=0;
+  const next=()=>{
+    if(i>=files.length){finishSCR();return}
+    const s=document.createElement("script"); s.src=files[i++]; s.async=true;
+    s.onload=next; s.onerror=()=>{SCRSTATE="error";updateStatus()}; document.head.appendChild(s);
+  }; next();
+}
+function finishSCR(){
+  S=[].concat(...(window.SCR_PARTS||[])); window.SCR_PARTS=null;
+  const texts=[],ref=[],kind=[];
+  S.forEach((r,s)=>{texts.push(norm(r[1]));ref.push(RS+s);kind.push(5);
+    if(r[4])for(const e of r[4].split("|")){texts.push(norm(e));ref.push(RS+s);kind.push(6)}
+    if(r[5])for(const e of r[5].split("|")){texts.push(norm(e));ref.push(RS+s);kind.push(7)}});
+  IDXS={texts,ref,kind}; SCRSTATE="ready"; updateStatus();
+  comps().forEach(c=>{const inp=document.getElementById("s-"+c.k);if(inp&&inp.value.trim().length>=2)renderResults(c.k,searchIdx(inp.value),inp.value)});
+}
+function kidsOf(i){
+  if(!KIDS){KIDS=new Map();for(const [t,j] of TREE){const p=t.lastIndexOf(".");if(p<0)continue;const pt=t.slice(0,p);if(!KIDS.has(pt))KIDS.set(pt,new Set());KIDS.get(pt).add(j)}}
+  const out=new Set();const r=M[i];if(!r[2])return [];
+  for(const t of r[2].split(";")){const s=KIDS.get(t);if(s)s.forEach(j=>out.add(j))}
+  return [...out].map(j=>M[j]).sort((a,b)=>a[1].localeCompare(b[1]));
+}
+const KBONUS=[14,0,8,12,4,1,-4,0];
+function scan(ix,nq,words,best){
+  const {texts,ref,kind}=ix;
+  for(let i=0;i<texts.length;i++){
+    const t=texts[i]; let pos=t.indexOf(nq), sc;
+    if(pos<0){ if(words.length<2)continue; let ok=true; for(const w of words){if(!t.includes(w)){ok=false;break}} if(!ok)continue; sc=12; }
+    else sc = t===nq?100 : pos===0?70 : t[pos-1]===" "?48 : 22;
+    sc += KBONUS[kind[i]] - Math.min(t.length,120)*0.06;
+    const k=ref[i]; const cur=best.get(k);
+    if(!cur||sc>cur.sc)best.set(k,{sc,kind:kind[i],t});
+  }
+}
+function searchIdx(q){
+  const nq=norm(q); if(nq.length<2||!IDX)return [];
+  const words=nq.split(" ").filter(Boolean); const best=new Map();
+  scan(IDX,nq,words,best);
+  if(IDXS&&nq.length>=3)scan(IDXS,nq,words,best);
+  return [...best.entries()].sort((a,b)=>b[1].sc-a[1].sc).slice(0,20)
+    .map(([k,v])=>({ref:k,kind:v.kind,matched:(v.kind===0||v.kind===3||v.kind===5)?null:originalAt(k,v.t)}));
+}
+function originalAt(k,t){
+  let pool=[];
+  if(k>=RS){const r=S[k-RS];pool=[...(r[4]?r[4].split("|"):[]),...(r[5]?r[5].split("|"):[])]}
+  else if(k>=RE){const r=E[k-RE];pool=r[2]?r[2].split("|"):[]}
+  else {const r=M[k];pool=[...(r[3]?r[3].split("|").map(stripE):[]),...(r[4]?r[4].split("|"):[])]}
+  return pool.find(p=>norm(p)===t)||t;
+}
+
+/* ---------- framework UI ---------- */
+function renderFW(){
+  $("#fwGrid").innerHTML=Object.entries(FW).map(([k,f])=>`<button type="button" class="fw" data-fw="${k}" aria-pressed="${k===state.fw}"><b>${esc(f.name)}</b><span>${esc(f.use)}</span></button>`).join("");
+  const f=FW[state.fw];
+  $("#fwInfo").innerHTML=`<div class="letters">${f.comp.map(c=>esc(c.k)+" · "+esc(c.l)).join(" &nbsp;|&nbsp; ")}</div><div style="margin-top:4px">${esc(f.use)}. Activa solo los componentes que deben aparecer en todos los estudios elegibles: cada componente activo es un bloque de la estrategia.</div>`;
+}
+$("#fwGrid").addEventListener("click",e=>{const b=e.target.closest("[data-fw]");if(!b)return;state.fw=b.dataset.fw;openDetail={};renderAll()});
+
+/* ---------- blocks UI ---------- */
+let openDetail={}; // k -> {type:'mesh'|'eric'|'live', i, data}
+let lastResults={};
+function renderBlocks(){
+  $("#blocks").innerHTML=comps().map(c=>{const b=blk(c.k);return `
+  <article class="block ${b.on?"":"off"}" data-k="${c.k}">
+    <div class="block-h">
+      <div class="letter">${esc(c.k)}</div>
+      <div class="tt"><b>${esc(c.l)}</b><small>${esc(c.h)}</small></div>
+      <label class="switch"><input type="checkbox" data-act="toggle" ${b.on?"checked":""}> En la estrategia</label>
+    </div>
+    <div class="block-b">
+      <div class="search">
+        <input type="search" id="s-${c.k}" data-act="search" placeholder="Buscar descriptor (ej. ${c.k==="P"||c.k==="S"||c.k==="Pop"?"insuficiencia cardíaca, adolescents":c.k==="O"||c.k==="E"?"mortalidad, anxiety":"ejercicio, metformin"})" autocomplete="off">
+      </div>
+      <div data-slot="results"></div>
+      <div data-slot="detail"></div>
+      <div class="free">
+        <input type="text" id="f-${c.k}" data-act="free" placeholder="Añadir término libre exacto (Enter)">
+        <select id="fk-${c.k}" aria-label="Tipo de término"><option value="free">libre EN</option><option value="es">ES / DeCS</option><option value="mesh">MeSH</option><option value="scr">SCR</option><option value="eric">ERIC</option></select>
+        <button class="btn" type="button" data-act="addfree">Añadir</button>
+      </div>
+      <div class="terms" data-slot="terms"></div>
+    </div>
+  </article>`}).join("");
+  comps().forEach(c=>{renderTerms(c.k);renderDetail(c.k)});
+}
+const TLAB={mesh:"MeSH",scr:"SCR",eric:"ERIC",es:"ES",free:"EN"};
+function card(k){return document.querySelector(`.block[data-k="${k}"]`)}
+function renderTerms(k){
+  const el=card(k).querySelector('[data-slot="terms"]'); const b=blk(k);
+  if(!b.terms.length){el.innerHTML=`<span class="empty">Sin términos todavía. Busca un descriptor o escribe un término libre.</span>`;return}
+  const order={mesh:0,scr:1,eric:2,free:3,es:4};
+  el.innerHTML=b.terms.map((t,i)=>({t,i})).sort((a,b)=>order[a.t.k]-order[b.t.k]).map(({t,i})=>`<span class="term ${t.k}"><i>${TLAB[t.k]||"EN"}</i><span class="t">${esc(t.t)}</span><button type="button" data-act="rm" data-i="${i}" aria-label="Quitar ${esc(t.t)}">×</button></span>`).join("");
+}
+function addTerm(k,t,kind,ui){
+  t=cleanTerm(t); if(!t)return false;
+  const b=blk(k); const grp=kind==="es"?"es":kind;
+  if(b.terms.some(x=>x.t.toLowerCase()===t.toLowerCase()&&(x.k===grp)))return false;
+  b.terms.push({t,k:kind,ui:ui||""}); return true;
+}
+function renderResults(k,list,q){
+  const el=card(k).querySelector('[data-slot="results"]');
+  if(!q||q.length<2){el.innerHTML="";return}
+  lastResults[k]=list;
+  const rows=list.map((r,j)=>{
+    if(r.live){return `<button type="button" class="res" data-act="pick" data-j="${j}"><div><div class="nm">${esc(r.name)}</div><div class="via">${esc(r.ui)}${r.mapped?" · mapeado a "+esc(r.mapped):""}</div></div><span class="src live">NLM en vivo</span></button>`}
+    if(r.ref>=RS){const d=S[r.ref-RS];const mp=d[3]?d[3].split(";").map(n=>{const i=BYUI.get(+n);return i!=null?M[i][1]:""}).filter(Boolean).join(", "):"";
+      return `<button type="button" class="res" data-act="pick" data-j="${j}"><div><div class="nm">${esc(d[1])}</div><div class="via">${r.matched?"vía «"+esc(r.matched)+"» · ":""}${esc(SCR_CLASS[d[2]]||"")}${mp?" · mapeado a "+esc(mp):""}</div></div><span class="src scr">SCR</span></button>`}
+    if(r.ref>=RE){const d=E[r.ref-RE];return `<button type="button" class="res" data-act="pick" data-j="${j}"><div><div class="nm">${esc(d[0])}</div><div class="via">${r.matched?"vía «"+esc(r.matched)+"» · ":""}${esc(d[6]||"Descriptor del ERIC Thesaurus")}</div></div><span class="src eric">ERIC</span></button>`}
+    const d=M[r.ref]; const cat=d[2]?[...new Set(d[2].split(";").map(t=>t[0]))].map(l=>CAT[l]||l).join(" · "):"";
+    const es=d[4]?d[4].split("|")[0]:"";
+    return `<button type="button" class="res" data-act="pick" data-j="${j}"><div><div class="nm">${esc(d[1])}</div><div class="via">${r.matched?"vía «"+esc(r.matched)+"» · ":""}${es?"ES: "+esc(es):""}</div></div><span class="cat">${esc(cat)}</span><span class="src mesh">MeSH</span></button>`;
+  }).join("");
+  el.innerHTML=`<div class="results">${rows||`<div class="res-foot">Sin coincidencias en el índice local.</div>`}<div class="res-foot"><span>${list.length?list.length+" resultados":"Sin coincidencias"}${SCRSTATE==="loading"?" · cargando conceptos suplementarios…":""}</span><span class="row" style="gap:6px"><button class="btn sm" type="button" data-act="live">Buscar en NLM en vivo</button><a class="btn sm" style="text-decoration:none" href="https://decs.bvsalud.org/es/ths/?filter=ths_termall&q=${encodeURIComponent(q)}" target="_blank" rel="noopener">Buscar en DeCS ↗</a></span></div></div>`;
+}
+function renderDetail(k){
+  const el=card(k).querySelector('[data-slot="detail"]'); const od=openDetail[k];
+  if(!od){el.innerHTML="";return}
+  if(od.type==="eric"){
+    const d=E[od.i]; const sp=s=>s?s.split("|"):[];
+    const nav=(lab,arr)=>arr.length?`<div><div class="lbl">${lab} (${arr.length})</div><div class="kids">${arr.map(x=>`<button type="button" class="kid" data-act="ericnav" data-name="${esc(x)}">${esc(x)}</button>`).join("")}</div></div>`:"";
+    const uf=sp(d[2]);
+    el.innerHTML=`<div class="detail"><div class="eyebrow">ERIC Thesaurus 2025${d[6]?" · "+esc(d[6]):""}</div><h3>${esc(d[0])}</h3>
+      ${d[1]?`<div class="scope">${esc(d[1])}</div>`:""}
+      ${uf.length?`<div><div class="lbl">Use For (sinónimos) → términos libres EN</div><div class="checks">${uf.map(u=>`<label class="ck"><input type="checkbox" data-ent="${esc(u)}" checked>${esc(u)}</label>`).join("")}</div></div>`:""}
+      ${nav("Término más amplio (BT)",sp(d[3]))}${nav("Términos más específicos (NT)",sp(d[4]))}${nav("Términos relacionados (RT)",sp(d[5]))}
+      <p class="hint">En ERIC (EBSCO) se busca como DE "${esc(d[0])}"; en las demás bases entra como término libre.</p>
+      <div class="links"><a href="https://eric.ed.gov/?ti=${encodeURIComponent(d[0])}" target="_blank" rel="noopener">Abrir en ERIC Thesaurus ↗</a></div>
+      <div class="row"><button class="btn pri" type="button" data-act="adddet">Añadir descriptor + seleccionados</button><button class="btn" type="button" data-act="addsel">Solo los seleccionados</button><button class="btn" type="button" data-act="closedet">Cerrar</button></div></div>`;
+    return;
+  }
+  if(od.type==="scr"){
+    const d=S[od.i]; const ui=d[0]; const syn=d[4]?d[4].split("|"):[];
+    const maps=d[3]?d[3].split(";").map(n=>BYUI.get(+n)).filter(i=>i!=null):[];
+    el.innerHTML=`<div class="detail"><div class="eyebrow">Concepto suplementario MeSH (SCR) · ${esc(SCR_CLASS[d[2]]||"")}</div><h3>${esc(d[1])}</h3>
+      <div class="meta"><span>${esc(ui)}</span></div>
+      <div class="scope" data-slot="scope"><button class="btn sm" type="button" data-act="scope">Ver nota (NLM)</button></div>
+      ${syn.length?`<div><div class="lbl">Sinónimos → términos libres EN</div><div class="checks">${syn.map(u=>`<label class="ck"><input type="checkbox" data-ent="${esc(u)}" ${/, /.test(u)?"":"checked"}>${esc(u)}</label>`).join("")}</div></div>`:""}
+      ${d[5]?`<div><div class="lbl">Equivalentes en español → BVS/LILACS</div><div class="checks">${d[5].split("|").map(u=>`<label class="ck"><input type="checkbox" data-es="${esc(u)}" checked>${esc(u)}</label>`).join("")}</div></div>`:""}
+      ${maps.length?`<div><div class="lbl">Mapeado a los descriptores MeSH (abre para añadirlos)</div><div class="kids">${maps.map(i=>`<button type="button" class="kid" data-act="kid" data-ui="${M[i][0]}">${esc(M[i][1])}</button>`).join("")}</div></div>`:""}
+      <p class="hint">En PubMed el nombre del concepto se mapea a su Supplementary Concept y a los descriptores asociados. En Cochrane, Embase, Scopus, WoS y BVS entra como término libre.</p>
+      <div class="links"><a href="https://meshb.nlm.nih.gov/record/ui?ui=${esc(ui)}" target="_blank" rel="noopener">MeSH Browser ↗</a></div>
+      <div class="row"><button class="btn pri" type="button" data-act="adddet">Añadir concepto + seleccionados</button><button class="btn" type="button" data-act="addsel">Solo los seleccionados</button><button class="btn" type="button" data-act="closedet">Cerrar</button></div></div>`;
+    return;
+  }
+  let name,ui,trees=[],entries=[],es=[],kids=[];
+  if(od.type==="mesh"){
+    const r=M[od.i]; name=r[1]; ui=pad(r[0]); trees=r[2]?r[2].split(";"):[];
+    entries=r[3]?r[3].split("|").map(e=>({t:e.replace(/^[\^$]/,""),acr:e[0]==="^",trd:e[0]==="$"})):[];
+    es=r[4]?r[4].split("|"):[]; kids=kidsOf(od.i);
+  } else { const d=od.data; name=d.name; ui=d.ui; trees=d.trees||[]; entries=(d.terms||[]).filter(t=>t!==name).map(t=>({t})); }
+  const showInv=state.opts.inverted;
+  const ent=entries.filter(e=>showInv||!/, /.test(e.t));
+  const hidden=entries.length-ent.length;
+  const ckE=ent.map((e,j)=>`<label class="ck"><input type="checkbox" data-ent="${esc(e.t)}" ${(!e.trd&&!/, /.test(e.t))?"checked":""}>${esc(e.t)}${e.acr?" <em>sigla</em>":""}${e.trd?" <em>marca</em>":""}</label>`).join("");
+  const ckS=es.map(e=>`<label class="ck"><input type="checkbox" data-es="${esc(e)}" checked>${esc(e)}</label>`).join("");
+  el.innerHTML=`<div class="detail">
+    <div class="eyebrow">${od.type==="live"?"MeSH · consulta en vivo NLM":"Descriptor MeSH 2026"}</div>
+    <h3>${esc(name)}</h3>
+    <div class="meta"><span>${esc(ui)}</span>${trees.map(t=>`<span>${esc(t)} ${CAT[t[0]]?"· "+esc(CAT[t[0]]):""}</span>`).join("")}</div>
+    <div class="scope" data-slot="scope"><button class="btn sm" type="button" data-act="scope">Ver nota de alcance (scope note)</button></div>
+    ${ent.length?`<div><div class="lbl">Términos de entrada → términos libres EN</div><div class="checks">${ckE}</div>${hidden?`<p class="hint" style="margin-top:4px">${hidden} formas invertidas ocultas (actívalas en Opciones).</p>`:""}</div>`:""}
+    <div><div class="lbl">Equivalentes en español → BVS/LILACS</div>${ckS?`<div class="checks">${ckS}</div>`:`<p class="hint">Sin equivalente local. Consulta el DeCS oficial.</p>`}<div data-slot="decs"></div></div>
+    ${kids.length?`<div><div class="lbl">Descriptores más específicos (${kids.length}) — el MeSH explota hacia ellos</div><div class="kids">${kids.slice(0,40).map(k2=>`<button type="button" class="kid" data-act="kid" data-ui="${k2[0]}">${esc(k2[1])}</button>`).join("")}${kids.length>40?`<span class="hint">+${kids.length-40} más</span>`:""}</div></div>`:""}
+    <div class="links"><a href="https://meshb.nlm.nih.gov/record/ui?ui=${esc(ui)}" target="_blank" rel="noopener">MeSH Browser ↗</a><a href="https://decs.bvsalud.org/es/ths/?filter=ths_regid&q=${esc(ui)}" target="_blank" rel="noopener">Ficha DeCS ↗</a>${state.decsKey?`<button class="btn sm" type="button" data-act="decs">Consultar DeCS oficial (API)</button>`:""}</div>
+    <div class="row"><button class="btn pri" type="button" data-act="adddet">Añadir descriptor + seleccionados</button><button class="btn" type="button" data-act="addsel">Solo los seleccionados</button><button class="btn" type="button" data-act="closedet">Cerrar</button></div>
+  </div>`;
+}
+
+/* block events */
+let searchT={};
+$("#blocks").addEventListener("input",e=>{
+  const card_=e.target.closest(".block"); if(!card_)return; const k=card_.dataset.k;
+  if(e.target.dataset.act==="search"){clearTimeout(searchT[k]);const q=e.target.value;searchT[k]=setTimeout(()=>renderResults(k,searchIdx(q),q),140)}
+});
+$("#blocks").addEventListener("keydown",e=>{
+  if(e.key!=="Enter")return; const card_=e.target.closest(".block"); if(!card_)return; const k=card_.dataset.k;
+  if(e.target.dataset.act==="free"){e.preventDefault();addFree(k)}
+  if(e.target.dataset.act==="search"){e.preventDefault();const b=card_.querySelector('[data-act="pick"]');if(b)b.click()}
+});
+$("#blocks").addEventListener("change",e=>{
+  const card_=e.target.closest(".block"); if(!card_)return; const k=card_.dataset.k;
+  if(e.target.dataset.act==="toggle"){blk(k).on=e.target.checked;card_.classList.toggle("off",!e.target.checked);changed()}
+});
+function addFree(k){
+  const inp=document.getElementById("f-"+k), kind=document.getElementById("fk-"+k).value;
+  const parts=inp.value.split(/\s+OR\s+|;|\n/i).map(s=>s.trim()).filter(Boolean);
+  let n=0; parts.forEach(p=>{if(addTerm(k,p,kind))n++});
+  inp.value=""; renderTerms(k); changed(); if(n)toast(n===1?"Término añadido":n+" términos añadidos");
+}
+$("#blocks").addEventListener("click",async e=>{
+  const btn=e.target.closest("[data-act]"); if(!btn)return; const card_=btn.closest(".block"); if(!card_)return; const k=card_.dataset.k; const act=btn.dataset.act;
+  if(act==="rm"){blk(k).terms.splice(+btn.dataset.i,1);renderTerms(k);changed()}
+  else if(act==="addfree")addFree(k);
+  else if(act==="pick"){
+    const r=lastResults[k][+btn.dataset.j];
+    if(r.live)openDetail[k]={type:"live",data:r};
+    else if(r.ref>=RS)openDetail[k]={type:"scr",i:r.ref-RS};
+    else if(r.ref>=RE)openDetail[k]={type:"eric",i:r.ref-RE};
+    else openDetail[k]={type:"mesh",i:r.ref};
+    renderDetail(k); card_.querySelector('[data-slot="detail"]').scrollIntoView({block:"nearest",behavior:"smooth"});
+  }
+  else if(act==="kid"){const i=BYUI.get(+btn.dataset.ui);if(i!=null){openDetail[k]={type:"mesh",i};renderDetail(k)}}
+  else if(act==="ericnav"){const j=EBYNAME.get(btn.dataset.name);if(j!=null){openDetail[k]={type:"eric",i:j};renderDetail(k)}}
+  else if(act==="closedet"){openDetail[k]=null;renderDetail(k)}
+  else if(act==="adddet"||act==="addsel"){
+    const od=openDetail[k]; let n=0;
+    if(od.type==="eric"||od.type==="scr"){
+      if(act==="adddet"&&(od.type==="eric"?addTerm(k,E[od.i][0],"eric"):addTerm(k,S[od.i][1],"scr",S[od.i][0])))n++;
+      card_.querySelectorAll("[data-ent]:checked").forEach(c=>{if(addTerm(k,c.dataset.ent,"free"))n++});
+      card_.querySelectorAll("[data-es]:checked").forEach(c=>{if(addTerm(k,c.dataset.es,"es"))n++});
+    }
+    else{
+      const name=od.type==="mesh"?M[od.i][1]:od.data.name, ui=od.type==="mesh"?pad(M[od.i][0]):od.data.ui;
+      if(act==="adddet"&&addTerm(k,name,/^C/.test(ui)?"scr":"mesh",ui))n++;
+      card_.querySelectorAll("[data-ent]:checked").forEach(c=>{if(addTerm(k,c.dataset.ent,"free"))n++});
+      card_.querySelectorAll("[data-es]:checked").forEach(c=>{if(addTerm(k,c.dataset.es,"es"))n++});
+    }
+    openDetail[k]=null; renderDetail(k); renderTerms(k); changed(); toast(n+" términos añadidos al bloque "+k);
+  }
+  else if(act==="scope"){
+    const od=openDetail[k]; const slot=card_.querySelector('[data-slot="scope"]');
+    const ui=od.type==="mesh"?pad(M[od.i][0]):od.type==="scr"?S[od.i][0]:od.data.ui;
+    slot.innerHTML=`<span class="loading"><span class="spin"></span>Consultando NLM…</span>`;
+    try{
+      let uid=ui[0]==="D"?"68"+ui.slice(1):(od.data&&od.data.uid);
+      if(!uid){const s=await getJSON(EUTILS+"esearch.fcgi?db=mesh&retmode=json&term="+encodeURIComponent(ui));uid=s.esearchresult.idlist[0]}
+      const j=await getJSON(EUTILS+"esummary.fcgi?db=mesh&retmode=json&id="+uid);
+      const s=j.result[uid]&&j.result[uid].ds_scopenote;
+      slot.textContent=s?s.trim():"Este registro no tiene nota de alcance.";
+    }catch(err){slot.innerHTML=`<span class="hint">${esc(OFFLINE_MSG)}</span>`}
+  }
+  else if(act==="live"){
+    const q=document.getElementById("s-"+k).value.trim(); if(!q)return;
+    const slot=card_.querySelector('[data-slot="results"]'); slot.insertAdjacentHTML("afterbegin",`<div class="loading" data-tmp><span class="spin"></span>Consultando la base MeSH de NLM…</div>`);
+    try{
+      const s=await getJSON(EUTILS+"esearch.fcgi?db=mesh&retmode=json&retmax=12&term="+encodeURIComponent(q));
+      const ids=s.esearchresult.idlist; let live=[];
+      if(ids.length){
+        const j=await getJSON(EUTILS+"esummary.fcgi?db=mesh&retmode=json&id="+ids.join(","));
+        live=ids.map(id=>j.result[id]).filter(Boolean).map(d=>{
+          let terms=d.ds_meshterms; if(typeof terms==="string"){try{terms=JSON.parse(terms.replace(/'/g,'"'))}catch(_){terms=[terms]}}
+          const mapped=(d.ds_headingmappedtolist||[]).map(x=>typeof x==="string"?x:(x.term||"")).join("; ")||(d.ds_headingmappedto||"");
+          return {live:true,uid:d.uid,ui:d.ds_meshui,name:(terms&&terms[0])||d.ds_meshui,terms:terms||[],trees:(d.ds_idxlinks||[]).map(x=>x.treenum),mapped:String(mapped).replace(/\*/g,"")};
+        });
+      }
+      const local=searchIdx(q).filter(r=>!live.some(l=>r.ref>=0&&pad(M[r.ref][0])===l.ui));
+      renderResults(k,[...live,...local],q);
+      if(!live.length)toast("NLM no devolvió registros para «"+q+"».");
+    }catch(err){slot.querySelector("[data-tmp]")?.remove();toast("Sin conexión con NLM");slot.insertAdjacentHTML("afterbegin",`<p class="msg warn">${esc(OFFLINE_MSG)}</p>`)}
+  }
+  else if(act==="decs"){
+    const od=openDetail[k]; const name=od.type==="mesh"?M[od.i][1]:od.data.name;
+    const slot=card_.querySelector('[data-slot="decs"]'); slot.innerHTML=`<span class="loading"><span class="spin"></span>Consultando DeCS…</span>`;
+    try{
+      const r=await fetch("https://api.bvsalud.org/decs/v2/search-boolean/?bool="+encodeURIComponent('101 "'+name+'"')+"&lang=es",{headers:{apikey:state.decsKey}});
+      if(!r.ok)throw new Error(r.status===401||r.status===403?"La clave API no fue aceptada.":"HTTP "+r.status);
+      const txt=await r.text(); const doc=new DOMParser().parseFromString(txt,"application/xml");
+      const pick=(sel)=>[...doc.querySelectorAll(sel)].map(n=>n.textContent.trim()).filter(Boolean);
+      let terms=[...new Set([...pick('descriptor[lang="es"]'),...pick('synonym[lang="es"]'),...pick("record_list record[lang='es'] synonym"),...pick('term[lang="es"]')])];
+      if(!terms.length) terms=[...new Set([...doc.querySelectorAll("*")].filter(n=>n.getAttribute&&n.getAttribute("lang")==="es"&&!n.children.length).map(n=>n.textContent.trim()).filter(Boolean))];
+      slot.innerHTML=terms.length?`<div class="lbl" style="margin-top:8px">DeCS oficial (API BIREME)</div><div class="checks">${terms.slice(0,30).map(t=>`<label class="ck"><input type="checkbox" data-es="${esc(t)}" checked>${esc(t)}</label>`).join("")}</div>`:`<p class="hint">DeCS no devolvió términos en español para este descriptor.</p>`;
+    }catch(err){slot.innerHTML=`<p class="msg warn">${esc(err.message&&!/Failed to fetch/.test(err.message)?err.message:OFFLINE_MSG)}</p>`}
+  }
+});
+
+/* ---------- syntax builders ---------- */
+const isPhrase = t => /[\s\-\/,.:;()'&+]/.test(t);
+const dq = t => isPhrase(t)?`"${t.replace(/"/g,"")}"`:t;
+const sq = t => `'${t.replace(/'/g,"")}'`;
+function uniq(arr){const s=new Set();return arr.filter(x=>{const k=x.toLowerCase();if(s.has(k))return false;s.add(k);return true})}
+function termsFor(b,{mesh="free",es=false,eric="free"}={}){
+  // returns {ctrl:[], free:[], es:[], eric:[]} per the database policy
+  const out={ctrl:[],free:[],eric:[]};
+  for(const t of b.terms){
+    if(t.k==="mesh"){ if(mesh==="ctrl")out.ctrl.push(t.t); else if(mesh==="free")out.free.push(t.t); }
+    else if(t.k==="eric"){ if(eric==="ctrl")out.eric.push(t.t); else out.free.push(t.t); }
+    else if(t.k==="es"){ if(es)out.free.push(t.t); }
+    else if(t.k==="scr"){ out.free.push(t.t); }
+    else out.free.push(t.t);
+  }
+  out.ctrl=uniq(out.ctrl);out.eric=uniq(out.eric);
+  const ctrlL=new Set(out.ctrl.map(x=>x.toLowerCase()));
+  out.free=uniq(out.free);
+  return out;
+}
+function label(c){return `${c.k} · ${c.l}`}
+function build(db){
+  const A=activeBlocks(); if(!A.length)return {lines:"",one:"",empty:true};
+  const esI=state.opts.esIntl; let L=[], parts=[];
+  const n=A.length;
+  if(db==="pubmed"){
+    A.forEach((x,i)=>{const t=termsFor(x.b,{mesh:"free",es:esI});const s="("+t.free.map(dq).join(" OR ")+")";parts.push(s);L.push(`#${i+1}  ${label(x.c)}\n${s}`)});
+    L.push(`#${n+1}  Estrategia final\n${A.map((_,i)=>"#"+(i+1)).join(" AND ")}`);
+  }
+  else if(db==="scopus"){
+    A.forEach(x=>{const t=termsFor(x.b,{mesh:"free",es:esI});parts.push("TITLE-ABS-KEY("+t.free.map(t=>`"${t}"`).join(" OR ")+")")});
+    L.push(parts.join("\nAND\n"));
+  }
+  else if(db==="wos"){
+    A.forEach((x,i)=>{const t=termsFor(x.b,{mesh:"free",es:esI});const s="TS=("+t.free.map(t=>`"${t}"`).join(" OR ")+")";parts.push(s);L.push(`#${i+1}  ${s}`)});
+    L.push(`#${n+1}  ${A.map((_,i)=>"#"+(i+1)).join(" AND ")}`);
+  }
+  else if(db==="embase"){
+    A.forEach((x,i)=>{const t=termsFor(x.b,{mesh:state.opts.emtree?"ctrl":"free",es:esI});
+      const s=[...t.ctrl.map(c=>sq(c.toLowerCase())+"/exp"),...t.free.map(f=>sq(f)+":ti,ab,kw")].join(" OR ");
+      parts.push("("+s+")");L.push(`#${i+1}  ${s}`)});
+    L.push(`#${n+1}  ${A.map((_,i)=>"#"+(i+1)).join(" AND ")}`);
+  }
+  else if(db==="cochrane"){
+    let ln=0; const blockRefs=[];
+    A.forEach(x=>{const t=termsFor(x.b,{mesh:"ctrl",es:false});const refs=[];
+      t.ctrl.forEach(c=>{ln++;L.push(`#${ln}  [mh "${c}"]`);refs.push("#"+ln)});
+      if(t.free.length){ln++;L.push(`#${ln}  (${t.free.map(f=>`"${f}"`).join(" OR ")}):ti,ab,kw`);refs.push("#"+ln)}
+      if(refs.length>1){ln++;L.push(`#${ln}  ${refs.join(" OR ")}`);blockRefs.push("#"+ln)}else blockRefs.push(refs[0]);
+      parts.push("("+[...t.ctrl.map(c=>`[mh "${c}"]`),t.free.length?`(${t.free.map(f=>`"${f}"`).join(" OR ")}):ti,ab,kw`:""].filter(Boolean).join(" OR ")+")");
+    });
+    ln++;L.push(`#${ln}  ${blockRefs.join(" AND ")}`);
+  }
+  else if(db==="bvs"){
+    A.forEach(x=>{const t=termsFor(x.b,{mesh:"ctrl",es:true});
+      const s="("+[...t.ctrl.map(c=>`mh:"${c}"`),...t.free.map(f=>`"${f}"`)].join(" OR ")+")";parts.push(s)});
+    L.push(parts.join("\nAND\n"));
+  }
+  else if(db==="eric"){
+    A.forEach(x=>{const t=termsFor(x.b,{mesh:"free",es:false,eric:"ctrl"});
+      const f=t.free.map(z=>`"${z}"`).join(" OR ");
+      const s="("+[...t.eric.map(d=>`DE "${d}"`),f?`TI(${f})`:"",f?`AB(${f})`:""].filter(Boolean).join(" OR ")+")";parts.push(s)});
+    L.push(parts.join("\nAND\n"));
+  }
+  const one = db==="cochrane"?parts.join(" AND "):parts.join(" AND ");
+  return {lines:L.join("\n\n"),one};
+}
+function hl(code){
+  return esc(code)
+    .replace(/(^|\n)(#\d+)/g,'$1<span class="ln">$2</span>')
+    .replace(/\b(AND|OR|NOT)\b/g,'<span class="op">$1</span>')
+    .replace(/(TITLE-ABS-KEY|TS=|:ti,ab,kw|\/exp|\[mh |mh:|\bDE |\bTI\(|\bAB\()/g,'<span class="fld">$1</span>');
+}
+const NOTES={
+  pubmed:"Sin corchetes ni etiquetas: PubMed traduce cada frase al descriptor MeSH y a todos los campos mediante el mapeo automático (revísalo en Advanced › Details). Aplica tipo de artículo, fecha e idioma con los filtros de la barra lateral.",
+  scopus:"TITLE-ABS-KEY busca en título, resumen y palabras clave. Scopus no tiene tesauro propio: los descriptores MeSH entran como texto. Límites con DOCTYPE, PUBYEAR o los filtros de resultados.",
+  wos:"Pega cada línea en Advanced Search y combina en el historial. TS= cubre título, resumen, Author Keywords y Keywords Plus. Usa la Core Collection y documenta los índices seleccionados.",
+  embase:"Embase usa comillas simples. Por defecto todos los términos van a :ti,ab,kw. Si activas la opción Emtree, los descriptores MeSH se proponen como 'término'/exp: confirma cada uno en el Emtree browser, porque la etiqueta preferida puede diferir.",
+  cochrane:"Para CENTRAL en Cochrane Library (Search manager). [mh \"…\"] explota el descriptor MeSH; :ti,ab,kw busca en título, resumen y palabras clave.",
+  bvs:"Para el portal BVS (incluye LILACS). mh: busca el descriptor DeCS/MeSH en cualquier idioma; los términos libres en inglés y español van como frases. Filtra base de datos LILACS desde la interfaz.",
+  eric:"Sintaxis EBSCOhost. DE busca descriptores ERIC; TI y AB buscan en título y resumen. Para eric.ed.gov usa los mismos términos con descriptor:\"…\" en lugar de DE."
+};
+const PLATFORM={pubmed:"PubMed (NLM)",scopus:"Scopus (Elsevier)",wos:"Web of Science Core Collection (Clarivate)",embase:"Embase.com (Elsevier)",cochrane:"Cochrane Library (Wiley) · CENTRAL",bvs:"Portal BVS (BIREME) · LILACS",eric:"ERIC (EBSCOhost)"};
+
+/* ---------- output UI ---------- */
+function renderTabs(){
+  $("#tabs").innerHTML=DBS.map(d=>`<button type="button" role="tab" class="tab" data-tab="${d.id}" aria-selected="${state.tab===d.id}">${esc(d.name)}</button>`).join("");
+}
+$("#tabs").addEventListener("click",e=>{const b=e.target.closest("[data-tab]");if(!b)return;state.tab=b.dataset.tab;save();renderTabs();renderPane()});
+function renderPane(){
+  const db=state.tab, el=$("#pane");
+  if(db==="report"){
+    const r=report();
+    el.innerHTML=`<div class="pane-h"><h3>Reporte PRISMA-S</h3><div class="row" style="gap:6px"><button class="btn sm" type="button" data-copy="report">Copiar</button><button class="btn sm" type="button" data-act="dl">Descargar .txt</button><button class="btn sm" type="button" data-act="dljson">Guardar proyecto (.json)</button><label class="btn sm" style="cursor:pointer">Abrir proyecto<input type="file" id="loadJson" accept=".json,application/json" hidden></label></div></div>
+    <p class="note">Plantilla mínima por base: base, plataforma, fecha, filtros, registros recuperados y únicos. Completa los campos en blanco al ejecutar cada búsqueda.</p>
+    <pre class="code" id="code">${esc(r)}</pre>`;
+    return;
+  }
+  const b=build(db);
+  if(b.empty){el.innerHTML=`<div class="pane-h"><h3>${esc(PLATFORM[db])}</h3></div><p class="msg warn">Ningún bloque activo tiene términos. Activa al menos un componente y añade descriptores o términos libres.</p>`;return}
+  let extra="";
+  if(db==="pubmed"){
+    extra=`<div class="row" style="gap:6px"><a class="btn sm pri" style="text-decoration:none" target="_blank" rel="noopener" href="https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(b.one)}">Ejecutar en PubMed ↗</a><button class="btn sm" type="button" data-act="count">Contar resultados por bloque</button></div>
+    <div id="countsBox"></div>
+    <details class="card seeds"><summary>Validar con estudios semilla (PMID)</summary>
+      <p class="hint">Pega los PMID de tu gold-standard set. La estrategia debería recuperar al menos el 95 %.</p>
+      <textarea id="seedBox" placeholder="27959607 31535829 …">${esc(state.seeds)}</textarea>
+      <div class="row" style="margin-top:8px"><button class="btn sm" type="button" data-act="seeds">Comprobar semillas</button></div>
+      <div id="seedOut" style="margin-top:8px"></div>
+    </details>`;
+  }
+  el.innerHTML=`<div class="pane-h"><h3>${esc(PLATFORM[db])}</h3><div class="row" style="gap:6px"><button class="btn sm" type="button" data-copy="lines">Copiar por líneas</button><button class="btn sm" type="button" data-copy="one">Copiar en una línea</button></div></div>
+  <pre class="code" id="code">${hl(b.lines)}</pre>
+  <p class="note">${esc(NOTES[db])}</p>${extra}`;
+}
+function report(){
+  const d=new Date().toISOString().slice(0,10);
+  const A=activeBlocks(); const f=FW[state.fw];
+  let s=`ESTRATEGIA DE BÚSQUEDA — Constructor de Estrategias Tau\nFecha de elaboración: ${d}\n\nPregunta: ${state.q||"(sin redactar)"}\nMarco: ${f.name}${state.umbrella?" + bloque de diseño (umbrella review)":""}\nBloques en la estrategia: ${A.map(x=>x.c.k).join(" AND ")||"—"}\n`;
+  comps().forEach(c=>{const b=blk(c.k);s+=`\n[${c.k}] ${c.l} — ${b.on?"incluido":"fuera del booleano"}\n  MeSH: ${b.terms.filter(t=>t.k==="mesh").map(t=>t.t+(t.ui?" ("+t.ui+")":"")).join("; ")||"—"}\n  Libres EN: ${b.terms.filter(t=>t.k==="free").map(t=>t.t).join("; ")||"—"}\n  Español: ${b.terms.filter(t=>t.k==="es").map(t=>t.t).join("; ")||"—"}\n  Conceptos suplementarios MeSH: ${b.terms.filter(t=>t.k==="scr").map(t=>t.t+(t.ui?" ("+t.ui+")":"")).join("; ")||"—"}\n  ERIC: ${b.terms.filter(t=>t.k==="eric").map(t=>t.t).join("; ")||"—"}\n`});
+  DBS.filter(x=>x.id!=="report").forEach(x=>{const b=build(x.id);if(b.empty)return;
+    s+=`\n────────────────────────────────────────\nBase: ${x.name}\nPlataforma: ${PLATFORM[x.id]}\nFecha de ejecución: ____________\nFiltros aplicados (idioma, fecha, tipo de estudio) y justificación: ____________\nRegistros recuperados: ______   Registros únicos tras deduplicación: ______\n\n${b.lines}\n`});
+  s+=`\n────────────────────────────────────────\nBúsquedas suplementarias (registros de ensayos, literatura gris, citaciones): ____________\nGestor de referencias y deduplicación: ____________\nVocabulario: MeSH 2026 (NLM); equivalentes en español vía Wikidata/DeCS. Validar descriptores en cada tesauro y la estrategia mediante PRESS.\nHerramienta: Constructor de Estrategias Tau — Dr. Joshuan J. Barboza · https://investigaciontau.com/cursos-online/\n`;
+  return s;
+}
+function download(name,text,type){
+  try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}catch(e){toast("No se pudo descargar; usa Copiar.")}
+}
+async function copy(text){
+  try{await navigator.clipboard.writeText(text);toast("Copiado al portapapeles")}
+  catch(e){const r=document.createRange();r.selectNodeContents($("#code"));const s=getSelection();s.removeAllRanges();s.addRange(r);toast("Texto seleccionado: usa Ctrl+C")}
+}
+$("#pane").addEventListener("click",async e=>{
+  const c=e.target.closest("[data-copy]");
+  if(c){const db=state.tab;const t=c.dataset.copy==="report"?report():c.dataset.copy==="one"?build(db).one:build(db).lines;copy(t);return}
+  const b=e.target.closest("[data-act]"); if(!b)return; const act=b.dataset.act;
+  if(act==="dl")download("estrategia-busqueda-"+new Date().toISOString().slice(0,10)+".txt",report(),"text/plain;charset=utf-8");
+  if(act==="dljson")download("proyecto-estrategia-tau.json",JSON.stringify(state,null,1),"application/json");
+  if(act==="count")countBlocks();
+  if(act==="seeds")checkSeeds();
+});
+$("#pane").addEventListener("change",e=>{
+  if(e.target.id==="loadJson"){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{state=Object.assign(blank(),JSON.parse(r.result));openDetail={};renderAll();toast("Proyecto cargado")}catch(err){toast("El archivo no es un proyecto válido")}};r.readAsText(f)}
+});
+$("#pane").addEventListener("input",e=>{if(e.target.id==="seedBox"){state.seeds=e.target.value;save()}});
+async function esCount(term){const j=await getJSON(EUTILS+"esearch.fcgi?db=pubmed&retmode=json&retmax=0&term="+encodeURIComponent(term));return +j.esearchresult.count}
+async function countBlocks(){
+  const box=$("#countsBox"); const A=activeBlocks(); const b=build("pubmed");
+  box.innerHTML=`<span class="loading"><span class="spin"></span>Consultando PubMed…</span>`;
+  try{
+    const items=A.map(x=>({lab:x.c.k+" · "+x.c.l,q:"("+termsFor(x.b,{mesh:"free",es:state.opts.esIntl}).free.map(dq).join(" OR ")+")"}));
+    items.push({lab:"Estrategia final",q:b.one});
+    const res=[]; for(const it of items){res.push(await esCount(it.q));await new Promise(r=>setTimeout(r,360))}
+    const mx=Math.max(...res,1);
+    box.innerHTML=`<div class="counts">${items.map((it,i)=>`<span>${esc(it.lab)}</span><span class="bar"><i style="width:${Math.max(1,Math.round(Math.log10(res[i]+1)/Math.log10(mx+1)*100))}%"></i></span><span class="num">${res[i].toLocaleString("es")}</span>`).join("")}</div><p class="note" style="margin-top:6px">Escala logarítmica. Conteos de PubMed a la fecha, sin filtros de la interfaz.</p>`;
+  }catch(err){box.innerHTML=`<p class="msg warn">${esc(OFFLINE_MSG)}</p>`}
+}
+async function checkSeeds(){
+  const out=$("#seedOut"); const ids=[...new Set((state.seeds.match(/\d{5,9}/g)||[]))];
+  if(!ids.length){out.innerHTML=`<p class="msg warn">Escribe al menos un PMID.</p>`;return}
+  out.innerHTML=`<span class="loading"><span class="spin"></span>Comprobando ${ids.length} PMID…</span>`;
+  try{
+    const q="("+build("pubmed").one+") AND ("+ids.map(i=>i+"[uid]").join(" OR ")+")";
+    const j=await getJSON(EUTILS+"esearch.fcgi?db=pubmed&retmode=json&retmax=500&term="+encodeURIComponent(q));
+    const got=new Set(j.esearchresult.idlist); const miss=ids.filter(i=>!got.has(i)); const pct=Math.round(got.size/ids.length*100);
+    const cls=pct>=95?"ok":pct>=80?"warn":"bad";
+    out.innerHTML=`<p class="msg ${cls}"><b>${got.size} de ${ids.length} semillas recuperadas (${pct} %).</b> ${pct>=95?"La estrategia supera el umbral del 95 %.":"Revisa los términos de los estudios no recuperados y vuelve a iterar."}</p>${miss.length?`<p class="hint" style="margin-top:6px">No recuperados: ${miss.map(m=>`<a href="https://pubmed.ncbi.nlm.nih.gov/${m}/" target="_blank" rel="noopener">${m}</a>`).join(", ")}</p>`:""}`;
+  }catch(err){out.innerHTML=`<p class="msg warn">${esc(OFFLINE_MSG)}</p>`}
+}
+
+/* ---------- audit ---------- */
+function renderAudit(){
+  const cs=comps(); const A=activeBlocks(); const items=[];
+  const onC=cs.filter(c=>blk(c.k).on);
+  items.push(["ok",`${A.length} bloque${A.length===1?"":"s"} en la estrategia (${A.map(x=>x.c.k).join(" AND ")||"ninguno"}) para un marco ${FW[state.fw].name}${state.umbrella?" con bloque de diseño":""}.`]);
+  onC.filter(c=>!blk(c.k).terms.length).forEach(c=>items.push(["bad",`El componente ${c.k} (${c.l}) está activo pero no tiene términos: no entra en la estrategia.`]));
+  A.forEach(x=>{const t=x.b.terms;const hasC=t.some(z=>z.k==="mesh"||z.k==="eric"||z.k==="scr"),hasF=t.some(z=>z.k==="free");
+    if(hasC&&!hasF)items.push(["warn",`Bloque ${x.c.k}: solo vocabulario controlado. Añade términos libres; el MeSH se asigna meses después de la publicación.`]);
+    if(!hasC&&hasF)items.push(["warn",`Bloque ${x.c.k}: solo términos libres. Busca el descriptor MeSH correspondiente (doble columna).`]);
+    if(t.filter(z=>z.k==="free").length===1)items.push(["warn",`Bloque ${x.c.k}: un único término libre. Suma sinónimos, siglas y variantes ortográficas.`]);
+    if(!t.some(z=>z.k==="es"))items.push(["warn",`Bloque ${x.c.k}: sin término en español; BVS/LILACS recuperará menos.`]);
+  });
+  if(A.length>4)items.push(["warn",`${A.length} bloques cruzados con AND: cada bloque adicional reduce la sensibilidad. Revisa si todos son conceptos no negociables.`]);
+  if(state.fw.startsWith("PICO")&&blk("C").on)items.push(["warn","El comparador está dentro del booleano. Rara vez es necesario y suele restar estudios."]);
+  items.push(["ok","PubMed sin corchetes ni etiquetas de campo; límites desde los filtros de la interfaz."]);
+  items.push(["ok","Sin truncadores ni comodines; sin operador NOT."]);
+  items.push(["ok","Embase con comillas simples; PubMed, Scopus, WoS y BVS con comillas dobles."]);
+  $("#audit").innerHTML="<ul>"+items.map(([c,t])=>`<li><span class="pill ${c}">${c==="ok"?"OK":c==="warn"?"REVISAR":"FALTA"}</span><span>${esc(t)}</span></li>`).join("")+"</ul>";
+}
+
+/* ---------- global controls ---------- */
+$("#q").addEventListener("input",e=>{state.q=e.target.value;save()});
+$("#umbrella").addEventListener("change",e=>{state.umbrella=e.target.checked;renderAll()});
+$("#optEsIntl").addEventListener("change",e=>{state.opts.esIntl=e.target.checked;changed()});
+$("#optEmtree").addEventListener("change",e=>{state.opts.emtree=e.target.checked;changed()});
+$("#optScr").addEventListener("change",e=>{state.opts.scrAuto=e.target.checked;save();if(e.target.checked)loadSCR()});
+$("#optInverted").addEventListener("change",e=>{state.opts.inverted=e.target.checked;save();comps().forEach(c=>renderDetail(c.k))});
+$("#optDecsKey").addEventListener("change",e=>{state.decsKey=e.target.value.trim();save();comps().forEach(c=>renderDetail(c.k));toast(state.decsKey?"Clave DeCS guardada en este navegador":"Clave DeCS eliminada")});
+$("#btnExample").addEventListener("click",()=>{const keep={opts:state.opts,decsKey:state.decsKey};state=fromExample();Object.assign(state,keep);openDetail={};renderAll();toast("Ejemplo cargado")});
+$("#btnClear").addEventListener("click",()=>{$("#clearConfirm").hidden=false});
+$("#clearNo").addEventListener("click",()=>{$("#clearConfirm").hidden=true});
+$("#clearYes").addEventListener("click",()=>{const keep={opts:state.opts,decsKey:state.decsKey,fw:state.fw};state=blank();Object.assign(state,keep);openDetail={};$("#clearConfirm").hidden=true;renderAll();toast("Estrategia en blanco")});
+
+function changed(){save();renderPane();renderAudit()}
+function renderAll(){
+  $("#q").value=state.q; $("#umbrella").checked=state.umbrella;
+  $("#optEsIntl").checked=state.opts.esIntl; $("#optEmtree").checked=state.opts.emtree; $("#optInverted").checked=state.opts.inverted; $("#optScr").checked=state.opts.scrAuto!==false; $("#optDecsKey").value=state.decsKey||"";
+  renderFW(); renderBlocks(); renderTabs(); renderPane(); renderAudit(); save();
+}
+renderAll();
+function boot(){initData()}
+if(window.MESH_DATA)boot(); else window.addEventListener("load",boot);
+})();
+</script>
+
+</body>
+</html>
