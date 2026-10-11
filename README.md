@@ -1,26 +1,42 @@
 # Constructor de Estrategias Tau
 
-Herramienta web para construir estrategias de búsqueda sistemática según el marco de la pregunta (PICO, PICOS, PECO, PEO, PIRD, PFO, CoCoPop, PCC, PICo, SPIDER, SPICE y bloque para umbrella review), con sintaxis para PubMed, Scopus, Web of Science, Embase, Cochrane Library, BVS/LILACS y ERIC.
+Herramienta web para construir estrategias de búsqueda sistemática en **ciencias de la salud, educación, ciencias sociales, humanidades, derecho e ingenierías**. El usuario elige su área, el marco de la pregunta (PICO, PICOS, PECO, PEO, PIRD, PFO, CoCoPop, PCC, PICo, SPIDER, SPICE, PICOC, ECLIPSE, PNJ y bloque para umbrella review) y obtiene la sintaxis para 16 bases de datos.
 
 **Autor:** Dr. Joshuan J. Barboza, MD, PhD · Tau Clinical Research · ORCID 0000-0002-2896-1407
 **Cursos:** https://investigaciontau.com/cursos-online/
 
-## Archivos
-| Archivo | Contenido |
-|---|---|
-| `index.html` | La aplicación completa (HTML + CSS + JS) |
-| `mesh-data.js` | MeSH 2026 (NLM): 31 110 descriptores, términos de entrada no permutados, números de árbol y equivalentes en español (Wikidata, CC0) |
-| `scr-data-1.js` … `scr-data-4.js` | 324 046 conceptos suplementarios MeSH 2026 (fármacos, sustancias, enfermedades raras, organismos, protocolos) con sinónimos y descriptores a los que mapean; se cargan en segundo plano |
-| `eric-data.js` | ERIC Thesaurus 2025 (IES) completo: 4578 descriptores con nota de alcance, Use For, BT, NT y RT |
-| `logo.png` | Logo Tau Clinical Research |
+## Tesauros incluidos (1 007 411 conceptos)
+| Archivo | Tesauro | Conceptos | Licencia |
+|---|---|---|---|
+| `mesh-data.js` | MeSH 2026 (NLM) + equivalentes en español de Wikidata | 31 110 | Dominio público / CC0 |
+| `scr-data-1..4.js` | Conceptos suplementarios MeSH 2026 | 324 046 | Dominio público |
+| `voc/ncit-1..5.js` | NCI Thesaurus | 204 721 | CC BY 4.0 |
+| `voc/hpo-1.js` | Human Phenotype Ontology | 19 894 | Uso libre con atribución |
+| `eric-data.js` | ERIC Thesaurus 2025 (IES) | 4578 | Dominio público |
+| `voc/unesco-1.js` | Tesauro de la UNESCO (es/en) | 4500 | CC BY-SA 3.0 IGO |
+| `voc/elsst-1.js` | ELSST, CESSDA (es/en) | 3422 | Ver elsst.cessda.eu |
+| `voc/eurovoc-1.js` | EuroVoc, Unión Europea (es/en) | 7515 | CC BY 4.0 |
+| `voc/stw-1.js` | STW Thesaurus for Economics, ZBW | 6696 | CC BY 4.0 |
+| `voc/agrovoc-1.js` | AGROVOC, FAO (es/en) | 42 053 | CC BY 4.0 |
+| `voc/gemet-1.js` | GEMET, Agencia Europea de Medio Ambiente (es/en) | 5573 | Reutilización con atribución |
+| `voc/nasa-1.js` | NASA Thesaurus | 22 622 | Dominio público |
+| `voc/aat-1..2.js` | Getty Art & Architecture Thesaurus (es/en) | 55 575 | ODC-By 1.0 |
+| `voc/lcsh-1..4.js` | Library of Congress Subject Headings (sin subdivisiones) | 275 106 | Dominio público |
+
+Los tesauros se cargan solo cuando el usuario activa el área correspondiente.
+
+## Áreas → tesauros y bases
+| Área | Tesauros | Bases de datos |
+|---|---|---|
+| Ciencias de la salud | MeSH, SCR, NCIt, HPO | PubMed, Embase, Cochrane, BVS/LILACS, CINAHL, APA PsycInfo, Scopus, WoS, SciELO |
+| Educación | ERIC, UNESCO, MeSH | ERIC, APA PsycInfo, Scopus, WoS, SciELO, Redalyc, Dialnet |
+| Ciencias sociales | ELSST, UNESCO, EuroVoc, STW | APA PsycInfo, Scopus, WoS, SciELO, Redalyc, Dialnet, JSTOR |
+| Humanidades | UNESCO, AAT, LCSH | JSTOR, Scopus, WoS, Dialnet, SciELO, Redalyc |
+| Derecho | EuroVoc, LCSH | HeinOnline, Dialnet, Scopus, WoS, SciELO, Redalyc |
+| Ingenierías | NASA, AGROVOC, GEMET, LCSH | IEEE Xplore, ScienceDirect, Scopus, WoS, SciELO |
 
 ## Publicar en GitHub Pages
-1. Crea una carpeta en tu repositorio `jbarbozameca.github.io` (p. ej. `/estrategias/`) y sube todos los archivos del paquete.
-2. Haz commit; la herramienta queda en `https://jbarbozameca.github.io/estrategias/`.
-
-## Funciones en vivo (requieren internet, sin clave)
-- NCBI E-utilities: conteo de resultados por bloque en PubMed, validación con PMID semilla, notas de alcance y búsqueda de conceptos suplementarios MeSH (fármacos, etc.).
-- DeCS oficial (BIREME): opcional, con clave gratuita de api.bvsalud.org introducida en "Opciones".
+Sube **todo el contenido** del paquete (incluida la carpeta `voc/`) a una carpeta de `jbarbozameca.github.io`, por ejemplo `/estrategias/`. Ningún archivo supera los 9 MB, por debajo del límite de 100 MB de GitHub.
 
 ## Reglas de construcción
 - PubMed sin corchetes ni etiquetas de campo; límites desde los filtros.
@@ -28,8 +44,8 @@ Herramienta web para construir estrategias de búsqueda sistemática según el m
 - Sin truncadores ni comodines.
 - Frases compuestas exactas; doble columna (controlado + libre) unida por OR; sin NOT.
 
-## Actualizar MeSH
-Descarga `desc20XX.gz` de https://nlmpubs.nlm.nih.gov/projects/mesh/MESH_FILES/xmlmesh/ y regenera `mesh-data.js` con el mismo formato: `[número UI, encabezado, árboles separados por ';', términos de entrada separados por '|' (prefijo ^ = sigla, $ = marca), términos en español separados por '|']`.
-
 ## DeCS oficial
-El uso de la base DeCS requiere un acuerdo de licencia gratuito con OPS/BIREME (https://forms.office.com/r/Vz3gefsXF6; condiciones en https://decs.bvsalud.org/es/condiciones-para-descargar-los-datos-de-decs-mesh/). Con el XML licenciado se genera `decs-data.js` y se integra igual que los demás vocabularios, citando la edición y los derechos de OPS/BIREME.
+Requiere el acuerdo de licencia gratuito de OPS/BIREME (https://forms.office.com/r/Vz3gefsXF6). Con el XML licenciado se genera `voc/decs-1.js` en el mismo formato.
+
+## Formato de `voc/*.js`
+`[id, término en inglés, término en español, sinónimos EN '|', sinónimos ES '|', términos amplios '|', términos específicos '|', nota]`
